@@ -230,3 +230,159 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más det
 
 
 
+
+
+## 🗺️ Ruta de aprendizaje (en 6 etapas)
+
+Cada etapa tiene: qué aprender, tareas, validación y por qué importa en una API de tienda.
+
+0) Preparación (10–20 min)
+
+Qué: Revisa .env, conexión a MySQL 8, y ejecuta el servidor.
+Tareas
+
+Configura DB en .env (DB_DATABASE, DB_USERNAME, DB_PASSWORD).
+php artisan migrate (debe crear users, cache, jobs).
+php artisan serve.
+
+
+Validación: consola sin errores, tablas creadas.
+Por qué: base estable para no depurar fallas de entorno mientras aprendes.
+
+
+Tip anti-piloto automático: no aceptes sugerencias largas de VS Copilot; pídele líneas cortas, y cuando te proponga bloques, escribe tú primero los esqueletos.
+
+
+1) Diseño de la API (contratos primero)
+
+Qué: Define el contrato de la API antes de codear (endpoints, payloads, estados).
+Tareas
+
+Crea routes/api.php y anota endpoints vacíos (GET /health, POST /auth/login, GET /products, POST /orders).
+Crea Controladores vacíos: AuthController, ProductController, OrderController.
+Define códigos de estado esperados y errores (400/401/409/422/500).
+
+
+Validación: php artisan route:list muestra los endpoints.
+Por qué: separa el qué del cómo; facilita pruebas y evita re-trabajo.
+
+
+Estructura actual del proyecto ya incluye routes/ y app/Http/Controllers listos para esto.
+
+
+2) Autenticación con Sanctum (tokens personales) + Roles/Permisos
+
+Qué: Login con email/password → genera token; middleware auth:sanctum; roles básicos (admin, customer).
+Tareas
+
+Instala y configura Sanctum (migraciones, middleware).
+En AuthController@login, valida credenciales y crea token.
+Middleware RolePermission (simple): verifica user->role.
+
+
+Validación:
+
+POST /auth/login devuelve {token}.
+Un GET /products protegido devuelve 401 sin token y 200 con token.
+
+
+Por qué: toda compra y carrito requieren identidad y permisos.
+
+
+3) Dominio de Productos e Inventario (modelo de datos mínimo)
+
+Qué: Tablas y modelos Product, InventoryMovement para existencias.
+Tareas
+
+Migraciones:
+
+products: sku único, name, price_decimal, stock_cached.
+inventory_movements: product_id, delta, reason, created_at.
+
+
+Seeders con 5–10 productos de prueba.
+ProductController@index/show (solo lectura).
+
+
+Validación: GET /products lista con paginación; GET /products/{id} devuelve detalle.
+Por qué: inventario consistente es la base del checkout.
+
+
+4) Compras seguras: idempotencia + “doble clic” + locks
+
+Qué: Endpoint POST /orders con token idempotente y control de stock atómico.
+Tareas
+
+Crea tabla orders (estado: pending|paid|cancelled, total, idempotency_key único).
+Middleware TokenIdempotency: lee header Idempotency-Key, busca orden previa con ese key, reutiliza respuesta si existe; si no, marca un lock corto (Redis o DB).
+CheckoutService:
+
+Revalida stock con SELECT ... FOR UPDATE o Redis lock.
+Descuenta stock (escribe inventory_movements, actualiza stock_cached).
+Registra order en pending y simula pago (por ahora).
+
+
+
+
+Validación: dos POST consecutivos con el mismo Idempotency-Key → misma respuesta (HTTP 200/201) sin crear duplicados; sin key → 400.
+Por qué: esto elimina cargos duplicados y órdenes fantasma cuando el usuario presiona dos veces.
+
+
+5) Reintentos y Jobs (colas)
+
+Qué: Mueve tareas pesadas a queue: confirmación de pago, envío de email.
+Tareas
+
+Configura queue (database/redis).
+Crea Job ProcessPayment con retryUntil() y backoff exponencial.
+OrderController@checkout → encola Job, devuelve 202 + order_id.
+
+
+Validación: php artisan queue:work procesa y actualiza orders.status a paid.
+Por qué: mejora resiliencia y UX sin bloquear la petición.
+
+
+6) Auditoría y Seguridad defensiva
+
+Qué: audit_logs para rastrear acciones; rate limiting y validaciones.
+Tareas
+
+Middleware que registra usuario, endpoint, payload resumido, resultado.
+RateLimiter por route sensible (login, checkout).
+Validaciones FormRequest estrictas (tipos, tamaños, listas blancas).
+
+
+Validación: logs consistentes y límites aplicados (429 cuando corresponde).
+Por qué: forense y protección ante abuso.
+
+
+## ✅ Orden de trabajo propuesto para hoy (bloques de 25–40 min)
+
+Crear contratos de API y rutas vacías (routes/api.php) con controladores vacíos.
+Sanctum básico: login → token → proteger /products.
+Migraciones/seeders de productos + GET /products.
+
+Con eso ya tendrás autenticación + catálogo funcionando. Mañana atacamos checkout idempotente.
+
+## 📌 Reglas de juego con VS Copilot (para que no te “haga todo”)
+
+Primero escribe tú el comentario o la firma del método; luego acepta pequeñas sugerencias (1–3 líneas).
+Si te propone 50 líneas: Escápate (Esc) y pide “Suggest a shorter snippet” o escribe tú la estructura y deja que complete param names, no la lógica.
+Cuando dudes, pega aquí lo que te sugirió y lo refactorizamos juntos.
+
+
+## 🧪 Checklist de comprensión (no sigas sin poder contestar esto)
+
+¿Qué diferencia hay entre autenticación (quién eres) y autorización (qué puedes hacer)?
+¿Qué garantiza un token idempotente frente a un simple request_id?
+¿Cuál es la diferencia entre lock optimista y pesimista en tu flujo de stock?
+¿Qué endpoints deberían tener rate limiting y por qué?
+
+
+## ¿Por dónde empezamos ya?
+Dime si quieres que arranquemos con el Bloque 1 (contratos + rutas + controladores vacíos).
+Si me dices “va”, te paso:
+
+el esqueleto de routes/api.php (sin lógica, solo endpoints y comentarios de intención),
+los stubs de controladores con métodos vacíos y docblocks de lo que hará cada uno,
+y un mini plan de pruebas con curl/httpie para validar que existen y responden 200/401 según corresponda.
