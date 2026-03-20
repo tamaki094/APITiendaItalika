@@ -20,18 +20,7 @@ class ProductController extends Controller
      * - per_page: 1..100        (default: 10)
      * - page:     >=1           (controlado automáticamente por Laravel)
      */
-
     public function index(Request $request): JsonResponse {
-        // //Hoy: Contrato sin datos reales.
-        // return response()->json([
-        //     'data' => [],
-        //     'meta' => [
-        //         'total' => 0,
-        //         'page' => 1
-        //     ]
-        // ]);
-
-
         $query = Product::query();
 
         // --- Búsqueda por nombre ---
@@ -61,10 +50,6 @@ class ProductController extends Controller
 
         $results = $query->paginate($perPage);
 
-        // Puedes regresar el paginator tal cual (Laravel ya serializa a JSON)
-        // return response()->json($results);
-
-        // O bien, estructurar un JSON con "data" y "meta" (contrato más explícito)
         return response()->json([
             'data' => $results->items(),
             'meta' => [
@@ -93,11 +78,6 @@ class ProductController extends Controller
      * Futuro: consulta real a MySql.
      */
     public function show(int $id): JsonResponse {
-        // //Hoy : 404 por defecto hasta que tengamos BD.
-        // return response()->json([
-        //     'message' => 'product not found'
-        // ], 404);
-
         $product = Product::find($id);
         if(!$product){
             return response()->json(['message' => 'product not found'], 404);

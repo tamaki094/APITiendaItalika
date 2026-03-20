@@ -44,11 +44,6 @@ class AuthController extends Controller
             'token'      => $token,
             'token_type' => 'Bearer',
         ], 200);
-
-
-        // return response()->json([
-        //     'message' => 'login not implemented yet'
-        // ], 501);
     }
 
 
@@ -64,9 +59,5 @@ class AuthController extends Controller
         }
 
         return response()->json(['message' => 'Sesión cerrada'], 200);
-
-        // return response()->json([
-        //     'message' => 'logout not implemented yet'
-        // ], 501);
     }
 }

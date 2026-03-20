@@ -10,13 +10,6 @@ use App\Http\Controllers\HealthController;
 |--------------------------------------------------------------------------
 | API Routes (Contratos)
 |--------------------------------------------------------------------------
-| TODO (próximos bloques):
-| - Proteger endpoints con auth:sanctum
-| - Rate limiting específico por ruta
-| - Validaciones con FormRequest
-|
-| Nota: Mantén este archivo como “fuente de verdad” del contrato:
-|       endpoints, métodos, códigos de estado y errores esperados.
 */
 
 // --- Salud del servicio ---
@@ -41,7 +34,40 @@ Route::get('/products/{id}', [ProductController::class, 'show'])
     ->whereNumber('id')
     ->name('products.show'); // 200 detalle, 404 no encontrado
 
-// --- Checkout (protegido) ---
-Route::post('/orders', [OrderController::class, 'store'])
-    ->middleware('auth:sanctum') // requiere token válido
-    ->name('orders.store');
+// // --- Checkout (protegido) ---
+// Route::post('/orders', [OrderController::class, 'store'])
+//     ->middleware('auth:sanctum') // requiere token válido
+//     ->name('orders.store');
+
+Route::middleware('auth:sanctum')->group(function (){
+    //Listado de ordenes de usuario
+    Route::get('/orders', [OrderController::class, 'index'])
+    ->name('orders.index');
+
+    //Detalle de orden
+    Route::get('/orders/{id}', [OrderController::class, 'show'])
+        ->whereNumber('id')
+        ->name('orders.show');
+
+    //Marcar como pagada
+    Route::post('/orders/{id}/pay', [OrderController::class, 'pay'])
+        ->whereNumber('id')
+        ->name('orders.pay');
+
+    //Panel/estadisticas
+    Route::get('/orders/stats', [OrderController::class, 'stats'])->name('orders.stats');
+
+    //Cancelar orden (si esta pendiente)
+    Route::post('/orders/{id}/cancel', [OrderController::class, 'cancel'])
+        ->whereNumber('id')
+        ->middleware('throttle:cancel-orders')
+        ->name('orders.cancel');
+
+    //Webhook simulado de pago(en real vendria sin auth y validado por firma o token secreto)
+    Route::post('/webhooks/payments', [OrderController::class, 'paymentWebhook'])
+        ->middleware('throttle:payment-webhooks')
+        ->name('webhooks.payments');
+
+
+
+});
