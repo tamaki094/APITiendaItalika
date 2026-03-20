@@ -224,6 +224,18 @@ app/
 
 Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
 
+
+## Creacion de Base de datos
+
+```sql
+
+CREATE DATABASE tienda_italika CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'tienda_user'@'localhost' IDENTIFIED BY 'SuperPass123!';
+GRANT ALL PRIVILEGES ON tienda_italika.* TO 'tienda_user'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+```
+
 ---
 
 **Desarrollado con ❤️ para Tienda Italika**
@@ -386,3 +398,5 @@ Si me dices “va”, te paso:
 el esqueleto de routes/api.php (sin lógica, solo endpoints y comentarios de intención),
 los stubs de controladores con métodos vacíos y docblocks de lo que hará cada uno,
 y un mini plan de pruebas con curl/httpie para validar que existen y responden 200/401 según corresponda.
+
+
